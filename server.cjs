@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 
 // Proxy API requests to Directus
 app.use('/api', createProxyMiddleware({
-  target: 'https://kopilot.sliplane.app',
+  target: 'https://strandly.onrender.com',
   changeOrigin: true,
   pathRewrite: {
     '^/api': '', // remove /api prefix when forwarding to Directus

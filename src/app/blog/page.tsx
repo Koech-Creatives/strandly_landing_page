@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { directusFetch, getDirectusAssetUrl, buildSrcSet } from '@/lib/directus';
+import { fallbackPosts, fallbackTags } from '@/lib/fallback-data';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,9 @@ import {
   ArrowRight,
   Grid3X3,
   List,
-  SortAsc
+  SortAsc,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -52,6 +55,8 @@ const BlogPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title'>('newest');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [tagSearchQuery, setTagSearchQuery] = useState<string>('');
   const postsPerPage = 9;
 
   // Calculate reading time
@@ -62,9 +67,20 @@ const BlogPage: React.FC = () => {
     return Math.ceil(wordCount / wordsPerMinute);
   };
 
+  // Filter tags based on search query
+  const filteredTags = useMemo(() => {
+    if (!tagSearchQuery.trim()) return postTags;
+    return postTags.filter(tag => 
+      tag.name.toLowerCase().includes(tagSearchQuery.toLowerCase())
+    );
+  }, [postTags, tagSearchQuery]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
         // Fetch posts and tags in parallel
         const [postsResponse, tagsResponse] = await Promise.all([
           directusFetch(
@@ -128,16 +144,18 @@ const BlogPage: React.FC = () => {
         console.groupCollapsed('%cBlog data fetch failed', 'color:#b45309');
         console.error('Reason:', err?.message || err);
         if (err && typeof err === 'object') {
-          // @ts-expect-error structured from DirectusFetchError
           if (err.endpoint || err.url || err.status) {
-            // @ts-expect-error
             console.table([{ endpoint: err.endpoint, url: err.url, status: err.status }]);
-            // @ts-expect-error
             if (err.details) console.debug('Details:', err.details);
           }
         }
         console.groupEnd();
-        setError('We’re having trouble loading articles right now. Please try again shortly.');
+        console.warn('⚠️ Using fallback data due to API failure');
+        
+        // Use fallback data when API is completely unavailable
+        setPosts(fallbackPosts.data as unknown as Post[]);
+        setPostTags(fallbackTags.data as PostTag[]);
+        setError(null); // Clear error since we have fallback data
       } finally {
         setLoading(false);
       }
@@ -152,9 +170,20 @@ const BlogPage: React.FC = () => {
     return ['all', ...Array.from(new Set(cats))];
   }, [posts]);
 
+  // Helper function to extract text from multilingual objects
+  const getText = (v: string | object | null | undefined) => {
+    if (typeof v === 'string') return v;
+    if (v && typeof v === 'object' && 'en' in v) return (v as any).en || '';
+    return '';
+  };
+
   // Filter and sort posts
   const filteredAndSortedPosts = useMemo(() => {
-    const safeLower = (v: string | null | undefined) => (v || '').toLowerCase();
+    const safeLower = (v: string | object | null | undefined) => {
+      if (typeof v === 'string') return v.toLowerCase();
+      if (v && typeof v === 'object' && 'en' in v) return (v as any).en?.toLowerCase() || '';
+      return '';
+    };
     let filtered = posts.filter(post => {
       const matchesSearch = safeLower(post.titles).includes(safeLower(searchQuery)) ||
                            safeLower(post.meta_description).includes(safeLower(searchQuery)) ||
@@ -321,300 +350,387 @@ const BlogPage: React.FC = () => {
        <div className="py-0 -mt-8 relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            {/* Tag Filter Section */}
-            {postTags.length > 0 && (
-              <div className="mb-8 text-center">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <Filter className="h-4 w-4 text-[#6B3F1D]" />
-                  <span className="text-sm font-medium text-[#6B3F1D]">Filter by tags:</span>
-                  {selectedTags.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedTags([])}
-                      className="text-xs text-[#6B3F1D]/70 hover:text-[#6B3F1D] hover:bg-[#6B3F1D]/10"
-                    >
-                      Clear all
-                    </Button>
-                  )}
-                </div>
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {postTags.map((tag) => (
-                    <Button
-                      key={tag.id}
-                      variant={selectedTags.includes(tag.name) ? "default" : "outline"}
-                      onClick={() => {
-                        setSelectedTags(prev => 
-                          prev.includes(tag.name) 
-                            ? prev.filter(t => t !== tag.name)
-                            : [...prev, tag.name]
-                        );
-                      }}
-                      className={`text-sm ${
-                        selectedTags.includes(tag.name)
-                          ? "bg-[#6B3F1D] text-white hover:bg-[#8B4513]" 
-                          : "bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10"
-                      }`}
-                    >
-                      {tag.name}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Search and Filters */}
-            <div className="mb-12">
-              <div className="flex flex-col lg:flex-row gap-4 mb-6">
-                {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search articles..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-12 text-lg bg-[#e7cfb1] border-[#6B3F1D]/30 focus:border-[#6B3F1D] focus:ring-[#6B3F1D] text-[#6B3F1D]"
-                  />
-                </div>
-                
-                {/* Category Filter */}
-                <div className="flex gap-2 flex-wrap">
-                  {categories.map((category) => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? "default" : "outline"}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`capitalize ${
-                        selectedCategory === category 
-                          ? "bg-[#6B3F1D] text-white hover:bg-[#8B4513]" 
-                          : "bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10"
-                      }`}
-                    >
-                      {category}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sort and View Controls */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <SortAsc className="h-4 w-4" />
-                    <span className="text-sm font-medium">Sort by:</span>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'title')}
-                      className="px-3 py-1 border border-[#6B3F1D]/30 rounded-md text-sm bg-[#e7cfb1] text-[#6B3F1D] focus:border-[#6B3F1D] focus:ring-[#6B3F1D]"
-                    >
-                      <option value="newest">Newest</option>
-                      <option value="oldest">Oldest</option>
-                      <option value="title">Title</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-muted-foreground">
-                    {filteredAndSortedPosts.length} of {posts.length} articles
-                  </span>
-                  <div className="flex border border-[#6B3F1D]/30 rounded-lg bg-[#e7cfb1]">
-                    <Button
-                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('grid')}
-                      className={viewMode === 'grid' ? 'bg-[#6B3F1D] text-white hover:bg-[#8B4513]' : 'text-[#6B3F1D] hover:bg-[#6B3F1D]/10'}
-                    >
-                      <Grid3X3 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'list' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                      className={viewMode === 'list' ? 'bg-[#6B3F1D] text-white hover:bg-[#8B4513]' : 'text-[#6B3F1D] hover:bg-[#6B3F1D]/10'}
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative max-w-2xl">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search articles..."
+                  className="pl-10 h-12 text-lg bg-background border-[#6B3F1D]/30 focus:border-[#6B3F1D] focus:ring-[#6B3F1D] text-[#6B3F1D]"
+                />
               </div>
             </div>
 
-            {/* Posts Grid/List */}
-            {paginatedPosts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-2xl font-bold mb-2">No articles found</h3>
-                <p className="text-muted-foreground mb-6">
-                  Try adjusting your search or filter criteria
-                </p>
-                <Button 
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                    setSelectedTags([]);
-                  }}
-                  className="bg-[#6B3F1D] text-white hover:bg-[#8B4513]"
+            {/* Controls Bar */}
+            <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilters((s) => !s)}
+                  className="text-[#6B3F1D] border-[#6B3F1D]/30 hover:bg-[#6B3F1D]/10"
                 >
-                  Clear Filters
+                  <Filter className="h-4 w-4 mr-2" />
+                  {showFilters ? "Hide Filters" : "Show Filters"}
                 </Button>
               </div>
-            ) : (
-              <div className={`grid gap-6 ${
-                viewMode === 'grid' 
-                  ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-                  : 'grid-cols-1 max-w-4xl mx-auto'
-              }`}>
-                {paginatedPosts.map((post) => (
-                  <Link to={`/blog/${post.slugs}`} key={post.id} className="group">
-                    <Card className={`h-full flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-[#e7cfb1] border-[#6B3F1D]/30 ${
-                      viewMode === 'list' ? 'flex-row' : ''
-                    }`}>
-                      {/* Featured Image */}
-                      <div className={`relative overflow-hidden ${
-                        viewMode === 'list' ? 'w-80 h-48' : 'h-48'
-                      }`}>
-                {post.featured_image ? (
-                  <img
-                    src={getDirectusAssetUrl(post.featured_image, { width: 800, quality: 80, fit: 'cover', format: 'webp' })}
-                    srcSet={buildSrcSet(post.featured_image, [400, 600, 800, 1200], { format: 'webp', quality: 80 }) || undefined}
-                    sizes={viewMode === 'list' ? '(min-width: 1024px) 320px, 100vw' : '(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw'}
-                    alt={post.titles}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      // Fallback to original URL if Directus transformation fails
-                      const target = e.target as HTMLImageElement;
-                      if (target.src !== post.featured_image) {
-                        target.src = post.featured_image;
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#e7cfb1] to-[#6B3F1D]/20 flex items-center justify-center">
-                    <BookOpen className="h-12 w-12 text-[#6B3F1D]" />
-                  </div>
-                )}
-                        <div className="absolute top-4 left-4">
-                          {post.category && (
-                            <Badge className="bg-[#6B3F1D]/10 text-[#6B3F1D] hover:bg-[#6B3F1D]/20 border-[#6B3F1D]/30">
-                              {post.category.name}
-                            </Badge>
-                          )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className={`transition-all duration-300 ${
+                    viewMode === "grid" 
+                      ? "bg-[#6B3F1D] text-white hover:bg-[#8B4513]" 
+                      : "text-[#6B3F1D] border-[#6B3F1D]/30 hover:bg-[#6B3F1D]/10"
+                  }`}
+                >
+                  <Grid3X3 className="h-4 w-4 mr-2" />
+                  Grid
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className={`transition-all duration-300 ${
+                    viewMode === "list" 
+                      ? "bg-[#6B3F1D] text-white hover:bg-[#8B4513]" 
+                      : "text-[#6B3F1D] border-[#6B3F1D]/30 hover:bg-[#6B3F1D]/10"
+                  }`}
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  List
+                </Button>
+              </div>
+            </div>
+
+            {/* Content Layout */}
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Filters Sidebar */}
+              {showFilters && (
+                <div className="w-full lg:w-80 flex-shrink-0 mb-6 lg:mb-0">
+                  <Card className="sticky top-8 bg-[#e7cfb1] border-[#6B3F1D]/30 shadow-elegant">
+                    <CardHeader 
+                      className="cursor-pointer hover:bg-[#6B3F1D]/5 transition-colors duration-200 rounded-t-lg"
+                      onClick={() => setShowFilters(false)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg font-display text-[#6B3F1D]">Filters</CardTitle>
+                        <ChevronUp className="h-5 w-5 text-[#6B3F1D]" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Category Filter */}
+                      <div className="space-y-3">
+                        <label className="text-[#6B3F1D] font-medium">Categories</label>
+                        <div className="space-y-2">
+                          {categories.map((category) => (
+                            <Button
+                              key={category}
+                              variant={selectedCategory === category ? "default" : "ghost"}
+                              onClick={() => setSelectedCategory(category)}
+                              className={`w-full justify-start capitalize ${
+                                selectedCategory === category 
+                                  ? "bg-[#6B3F1D] text-white hover:bg-[#8B4513]" 
+                                  : "text-[#6B3F1D] hover:bg-[#6B3F1D]/10"
+                              }`}
+                            >
+                              {category}
+                            </Button>
+                          ))}
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>
 
-                      <div className="flex-1 flex flex-col">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="line-clamp-2 group-hover:text-[#8B4513] transition-colors duration-200 font-prata">
-                            {post.titles}
-                          </CardTitle>
+                      {/* Tag Filter Section */}
+                      {postTags.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[#6B3F1D] font-medium">Filter by tags</label>
+                            {selectedTags.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedTags([])}
+                                className="text-xs text-[#6B3F1D]/70 hover:text-[#6B3F1D] hover:bg-[#6B3F1D]/10"
+                              >
+                                Clear all
+                              </Button>
+                            )}
+                          </div>
                           
-                          {/* Tags */}
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {post.tags
-                                .filter(tag => tag?.post_tags_id?.name)
-                                .slice(0, 3)
-                                .map((tag, index) => (
-                                <Badge key={tag.post_tags_id?.name || index} className="text-xs bg-[#6B3F1D] text-[#e7cfb1] hover:bg-[#8B4513] rounded-full px-3 py-1 font-medium">
-                                  {tag.post_tags_id.name}
-                                </Badge>
+                          {/* Tag Search */}
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6B3F1D]/60 h-4 w-4" />
+                            <Input
+                              placeholder="Search tags..."
+                              value={tagSearchQuery}
+                              onChange={(e) => setTagSearchQuery(e.target.value)}
+                              className="pl-10 h-10 bg-background border-[#6B3F1D]/30 focus:border-[#6B3F1D] text-[#6B3F1D]"
+                            />
+                          </div>
+                          
+                          <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
+                            <div className="space-y-2">
+                              {filteredTags.map((tag) => (
+                                <button
+                                  key={tag.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedTags(prev => 
+                                      prev.includes(tag.name) 
+                                        ? prev.filter(t => t !== tag.name)
+                                        : [...prev, tag.name]
+                                    );
+                                  }}
+                                  className={`w-full px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                                    selectedTags.includes(tag.name)
+                                      ? "bg-[#6B3F1D] text-white border-[#6B3F1D]"
+                                      : "bg-background text-[#6B3F1D] border-[#6B3F1D]/30 hover:border-[#6B3F1D]/50"
+                                  }`}
+                                >
+                                  {tag.name}
+                                </button>
                               ))}
-                              {post.tags.filter(tag => tag?.post_tags_id?.name).length > 3 && (
-                                <Badge className="text-xs bg-[#e7cfb1] text-[#6B3F1D] border-[#6B3F1D]/30 hover:bg-[#6B3F1D]/10 rounded-full px-3 py-1 font-medium">
-                                  +{post.tags.filter(tag => tag?.post_tags_id?.name).length - 3} more
+                            </div>
+                            {filteredTags.length === 0 && tagSearchQuery && (
+                              <div className="text-center text-[#6B3F1D]/60 py-4">
+                                No tags found matching "{tagSearchQuery}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sort */}
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-[#6B3F1D]">Sort by:</label>
+                        <select
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'title')}
+                          className="w-full px-3 py-2 border border-[#6B3F1D]/30 rounded-md text-sm bg-background text-[#6B3F1D] focus:border-[#6B3F1D] focus:ring-[#6B3F1D]"
+                        >
+                          <option value="newest">Newest</option>
+                          <option value="oldest">Oldest</option>
+                          <option value="title">Title</option>
+                        </select>
+                      </div>
+
+                      {/* Clear Filters */}
+                      {(searchQuery || selectedCategory !== 'all' || selectedTags.length > 0) && (
+                        <Button 
+                          variant="outline"
+                          className="w-full text-[#6B3F1D] border-[#6B3F1D]/30 hover:bg-[#6B3F1D]/10 font-body"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSelectedCategory('all');
+                            setSelectedTags([]);
+                          }}
+                        >
+                          Clear All Filters
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Main Content */}
+              <div className="flex-1 min-h-[600px]">
+                {/* Results Header */}
+                <div className="mb-8">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                      <h2 className="font-display text-2xl font-semibold text-[#6B3F1D]">
+                        {filteredAndSortedPosts.length} of {posts.length} articles
+                      </h2>
+                      {(searchQuery || selectedCategory !== 'all' || selectedTags.length > 0) && (
+                        <p className="text-sm text-[#6B3F1D]/70 mt-1">
+                          {searchQuery && `Searching for "${searchQuery}"`}
+                          {selectedCategory !== 'all' && ` • Category: ${selectedCategory}`}
+                          {selectedTags.length > 0 && ` • Tags: ${selectedTags.join(', ')}`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Posts Grid/List */}
+                {paginatedPosts.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="text-6xl mb-4">🔍</div>
+                    <h3 className="text-2xl font-bold mb-2">No articles found</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Try adjusting your search or filter criteria
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCategory('all');
+                        setSelectedTags([]);
+                      }}
+                      className="bg-[#6B3F1D] text-white hover:bg-[#8B4513]"
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                ) : (
+                  <div className={`grid gap-6 ${
+                    viewMode === 'grid' 
+                      ? (showFilters ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4')
+                      : 'grid-cols-1 max-w-4xl mx-auto'
+                  }`}>
+                    {paginatedPosts.map((post) => (
+                      <Link to={`/blog/${getText(post.slugs)}`} key={post.id} className="group">
+                        <Card className={`h-full flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-[#e7cfb1] border-[#6B3F1D]/30 ${
+                          viewMode === 'list' ? 'flex-row' : ''
+                        }`}>
+                          {/* Featured Image */}
+                          <div className={`relative overflow-hidden ${
+                            viewMode === 'list' ? 'w-80 h-48' : 'h-48'
+                          }`}>
+                            {post.featured_image ? (
+                              <img
+                                src={getDirectusAssetUrl(post.featured_image, { width: 800, quality: 80, fit: 'cover', format: 'webp' })}
+                                srcSet={buildSrcSet(post.featured_image, [400, 600, 800, 1200], { format: 'webp', quality: 80 }) || undefined}
+                                sizes={viewMode === 'list' ? '(min-width: 1024px) 320px, 100vw' : '(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw'}
+                                alt={post.titles}
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => {
+                                  // Fallback to original URL if Directus transformation fails
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src !== post.featured_image) {
+                                    target.src = post.featured_image || '';
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-[#e7cfb1] flex items-center justify-center">
+                                <BookOpen className="h-12 w-12 text-[#6B3F1D]" />
+                              </div>
+                            )}
+                            <div className="absolute top-4 left-4">
+                              {post.category && (
+                                <Badge className="bg-[#6B3F1D]/10 text-[#6B3F1D] hover:bg-[#6B3F1D]/20 border-[#6B3F1D]/30">
+                                  {post.category.name}
                                 </Badge>
                               )}
                             </div>
-                          )}
-                </CardHeader>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          </div>
 
-                        <CardContent className="flex-1 pb-1 min-h-[80px]">
-                          <p className="text-muted-foreground line-clamp-3 text-sm leading-relaxed">
-                            {post.meta_description || (post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No description available')}
-                  </p>
-                </CardContent>
+                          <div className="flex-1 flex flex-col">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="line-clamp-2 group-hover:text-[#8B4513] transition-colors duration-200 font-prata">
+                                {getText(post.titles)}
+                              </CardTitle>
+                              
+                              {/* Tags */}
+                              {post.tags && post.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {post.tags
+                                    .filter(tag => tag?.post_tags_id?.name)
+                                    .slice(0, 3)
+                                    .map((tag, index) => (
+                                    <Badge key={tag.post_tags_id?.name || index} className="text-xs bg-[#6B3F1D] text-white hover:bg-[#8B4513] rounded-full px-3 py-1 font-medium">
+                                      {tag.post_tags_id.name}
+                                    </Badge>
+                                  ))}
+                                  {post.tags.filter(tag => tag?.post_tags_id?.name).length > 3 && (
+                                    <Badge className="text-xs bg-[#e7cfb1] text-[#6B3F1D] border-[#6B3F1D]/30 hover:bg-[#6B3F1D]/10 rounded-full px-3 py-1 font-medium">
+                                      +{post.tags.filter(tag => tag?.post_tags_id?.name).length - 3} more
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                            </CardHeader>
 
-                        <CardFooter className="pt-3 pb-4">
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center space-x-3 min-w-0 flex-1">
-                              <Avatar className="h-8 w-8 flex-shrink-0">
-                                <AvatarFallback className="text-xs bg-[#6B3F1D] text-white font-semibold">
-                                  {post.author?.first_name?.[0]}{post.author?.last_name?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="text-sm min-w-0 flex-1">
-                                <p className="font-medium truncate">{post.author?.first_name} {post.author?.last_name}</p>
-                                <p className="text-muted-foreground text-xs">
-                                  {new Date(post.date_created).toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}
-                                </p>
+                            <CardContent className="flex-1 pb-1 min-h-[80px]">
+                              <p className="text-muted-foreground line-clamp-3 text-sm leading-relaxed">
+                                {getText(post.meta_description) || (getText(post.content) ? getText(post.content).replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No description available')}
+                              </p>
+                            </CardContent>
+
+                            <CardFooter className="pt-3 pb-4">
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
+                                    <AvatarFallback className="text-xs bg-[#6B3F1D] text-white font-semibold">
+                                      {post.author?.first_name?.[0]}{post.author?.last_name?.[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="text-sm min-w-0 flex-1">
+                                    <p className="font-medium truncate">{post.author?.first_name} {post.author?.last_name}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                      {new Date(post.date_created).toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      })}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center space-x-4 text-xs text-muted-foreground flex-shrink-0">
+                                  <div className="flex items-center space-x-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{post.reading_time} min</span>
+                                  </div>
+                                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                                </div>
                               </div>
-                            </div>
-                            
-                            <div className="flex items-center space-x-4 text-xs text-muted-foreground flex-shrink-0">
-                              <div className="flex items-center space-x-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{post.reading_time} min</span>
-                              </div>
-                              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
-                            </div>
+                            </CardFooter>
+                          </div>
+                        </Card>
+                      </Link>
+                    ))}
                   </div>
-                </CardFooter>
-                      </div>
-              </Card>
-            </Link>
-          ))}
-              </div>
-            )}
+                )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex justify-center">
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10 disabled:opacity-50"
-                  >
-                    Previous
-                  </Button>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 ${
-                        currentPage === page 
-                          ? "bg-[#6B3F1D] text-white hover:bg-[#8B4513]" 
-                          : "bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10"
-                      }`}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10 disabled:opacity-50"
-                  >
-                    Next
-                  </Button>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex justify-center">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10 disabled:opacity-50"
+                        >
+                          Previous
+                        </Button>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-10 ${
+                              currentPage === page 
+                                ? "bg-[#6B3F1D] text-white hover:bg-[#8B4513]" 
+                                : "bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10"
+                            }`}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                        
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          className="bg-[#e7cfb1] border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#6B3F1D]/10 disabled:opacity-50"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-          
-          )}
-          <div className="my-8 sm:my-10 pb-8 sm:pb-10" />
+            </div>
           </div>
         </div>
       </div>

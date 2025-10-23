@@ -155,15 +155,20 @@
   },
   "cookie_consent": {
     "title": "We value your privacy",
-    "description": "We use cookies to personalize content and ads, to provide social media features and to analyze our traffic. We also share information about your use of our site with our social media, advertising and analytics partners who may combine it with other information that you’ve provided to them or that they’ve collected from your use of their services.",
+    "description": "We use cookies to personalize content and ads, to provide social media features and to analyze our traffic. We also share information about your use of our site with our social media, advertising and analytics partners who may combine it with other information that you've provided to them or that they've collected from your use of their services.",
     "privacyPolicy": "Privacy Policy",
+    "cookiePolicy": "Cookie Policy",
     "imprint": "Impressum",
     "save": "Save settings",
     "acceptAll": "Accept all",
     "declineAll": "Decline all",
+    "cancel": "Cancel",
+    "rights": "Your rights:",
+    "rightsDescription": "You can withdraw your consent at any time and change your cookie settings. For more information, see our Privacy Policy.",
+    "lastUpdated": "Last updated",
     "app": {
       "optOut": "Opt-out",
-      "optIn": "Opt-in",
+      "optIn": "Customize",
       "toggle": "Toggle",
       "toggleAll": "Toggle all"
     },
@@ -174,6 +179,14 @@
     "analytics": {
       "title": "Analytics Cookies",
       "description": "These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site."
+    },
+    "marketing": {
+      "title": "Marketing Cookies",
+      "description": "These cookies are used to display relevant advertisements to you."
+    },
+    "preferences": {
+      "title": "Preference Cookies",
+      "description": "These cookies store your preferences and settings."
     },
     "microsoft_clarity": {
       "title": "Microsoft Clarity",

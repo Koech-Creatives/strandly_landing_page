@@ -1,4 +1,4 @@
-const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL || 'https://kopilot.sliplane.app';
+const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL || 'https://strandly.onrender.com';
 const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || '';
 
 class DirectusFetchError extends Error {
@@ -32,6 +32,8 @@ export const directusFetch = async (endpoint: string, options?: RequestInit) => 
   }
   if (import.meta.env.DEV) {
     console.log('[Directus] Proxy request →', proxyUrl);
+    console.log('[Directus] Token available:', !!DIRECTUS_TOKEN);
+    console.log('[Directus] Token preview:', DIRECTUS_TOKEN ? `${DIRECTUS_TOKEN.substring(0, 10)}...` : 'none');
   }
   
   try {

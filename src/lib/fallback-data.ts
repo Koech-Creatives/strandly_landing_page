@@ -28,7 +28,7 @@ export const fallbackPosts = {
         first_name: "Strandly",
         last_name: "Team"
       },
-      published_at: "2024-01-01T00:00:00Z",
+      date_created: "2024-01-01T00:00:00Z",
       category: {
         name: "Welcome"
       },
@@ -61,7 +61,7 @@ export const fallbackPosts = {
         first_name: "Strandly",
         last_name: "Team"
       },
-      published_at: "2024-01-02T00:00:00Z",
+      date_created: "2024-01-02T00:00:00Z",
       category: {
         name: "Styling"
       },

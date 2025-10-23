@@ -142,13 +142,18 @@
     "title": "Wir schätzen Ihre Privatsphäre",
     "description": "Wir verwenden Cookies, um Inhalte und Anzeigen zu personalisieren, Funktionen für soziale Medien anbieten zu können und die Zugriffe auf unsere Website zu analysieren. Außerdem geben wir Informationen zu Ihrer Nutzung unserer Website an unsere Partner für soziale Medien, Werbung und Analysen weiter. Diese Partner führen diese Informationen möglicherweise mit weiteren Daten zusammen, die Sie ihnen bereitgestellt haben oder die sie im Rahmen Ihrer Nutzung der Dienste gesammelt haben.",
     "privacyPolicy": "Datenschutzrichtlinie",
+    "cookiePolicy": "Cookie-Richtlinie",
     "imprint": "Impressum",
     "save": "Einstellungen speichern",
     "acceptAll": "Alle akzeptieren",
     "declineAll": "Alle ablehnen",
+    "cancel": "Abbrechen",
+    "rights": "Ihre Rechte:",
+    "rightsDescription": "Sie können Ihre Einwilligung jederzeit widerrufen und Ihre Cookie-Einstellungen ändern. Weitere Informationen finden Sie in unserer Datenschutzerklärung.",
+    "lastUpdated": "Letzte Aktualisierung",
     "app": {
       "optOut": "Abmelden",
-      "optIn": "Anmelden",
+      "optIn": "Anpassen",
       "toggle": "Umschalten",
       "toggleAll": "Alle umschalten"
     },
@@ -159,6 +164,14 @@
     "analytics": {
       "title": "Analyse-Cookies",
       "description": "Diese Cookies ermöglichen es uns, Besuche und Verkehrsquellen zu zählen, damit wir die Leistung unserer Website messen und verbessern können. Sie helfen uns zu wissen, welche Seiten am beliebtesten und am wenigsten beliebt sind und wie sich Besucher auf der Website bewegen."
+    },
+    "marketing": {
+      "title": "Marketing-Cookies",
+      "description": "Diese Cookies werden verwendet, um Ihnen relevante Werbung anzuzeigen."
+    },
+    "preferences": {
+      "title": "Präferenz-Cookies",
+      "description": "Diese Cookies speichern Ihre Präferenzen und Einstellungen."
     },
     "microsoft_clarity": {
       "title": "Microsoft Clarity",

@@ -57,34 +57,31 @@
     }
     </script>
 
-    <!-- Google Analytics (controlled by Klaro!) -->
-    <script type="opt-in" data-name="google-analytics" async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script type="opt-in" data-name="google-analytics">
+    <!-- Google Analytics (controlled by cookie consent) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-XXXXXXXXXX');
+      gtag('config', 'G-XXXXXXXXXX', {
+        'analytics_storage': 'denied',
+        'ad_storage': 'denied'
+      });
     </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- Microsoft Clarity (controlled by Klaro!) -->
-    <script type="opt-in" data-name="microsoft-clarity">
-      (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "YOUR_CLARITY_PROJECT_ID");
+    <!-- Microsoft Clarity (controlled by cookie consent) -->
+    <script>
+      // Microsoft Clarity will be loaded conditionally based on cookie consent
+      window.clarityLoaded = false;
     </script>
 
-    <!-- Tawk.to Live Chat (controlled by Klaro!) -->
-    <script type="opt-in" data-name="tawk-to">
-      var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-      (function(){
-      var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-      s1.async=true;
-      s1.src='https://embed.tawk.to/YOUR_TAWK_TO_PROPERTY_ID/YOUR_TAWK_TO_WIDGET_ID';
-      s1.charset='UTF-8';
-      s1.setAttribute('crossorigin','*');
-      s0.parentNode.insertBefore(s1,s0);
-      })();
+    <!-- Tawk.to Live Chat (controlled by cookie consent) -->
+    <script>
+      // Tawk.to will be loaded conditionally based on cookie consent
+      window.tawkLoaded = false;
     </script>
 
     <script type="module" src="/src/main.tsx"></script>
