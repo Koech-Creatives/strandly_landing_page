@@ -1,4 +1,4 @@
-const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL || 'https://strandly.onrender.com';
+const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL || 'https://api.strandlyeu.com';
 const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || '';
 
 class DirectusFetchError extends Error {

@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 
 // Proxy API requests to Directus
 app.use('/api', createProxyMiddleware({
-  target: 'https://strandly.onrender.com',
+  target: 'https://api.strandlyeu.com',
   changeOrigin: true,
   pathRewrite: {
     '^/api': '', // remove /api prefix when forwarding to Directus

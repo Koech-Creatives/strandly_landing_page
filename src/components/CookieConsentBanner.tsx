@@ -273,3 +273,5 @@ export const CookieSettingsModal: React.FC<CookieSettingsModalProps> = ({
     </div>
   );
 };
+
+

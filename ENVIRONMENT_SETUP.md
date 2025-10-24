@@ -29,7 +29,7 @@ VITE_APP_ENV=development
 VITE_APP_URL=http://localhost:3000
 
 # Directus CMS (Already configured)
-VITE_DIRECTUS_URL=https://strandly.onrender.com
+VITE_DIRECTUS_URL=https://api.strandlyeu.com
 VITE_DIRECTUS_TOKEN=3h9pr1rXhkBhbF7xFj6QwUkDKeCmcUzS
 
 # Supabase (Already configured)
@@ -131,7 +131,7 @@ export const config = {
     env: import.meta.env.VITE_APP_ENV || 'development',
   },
   directus: {
-    url: import.meta.env.VITE_DIRECTUS_URL || 'https://strandly.onrender.com',
+    url: import.meta.env.VITE_DIRECTUS_URL || 'https://api.strandlyeu.com',
     token: import.meta.env.VITE_DIRECTUS_TOKEN,
   },
   supabase: {
