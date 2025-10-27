@@ -41,29 +41,28 @@ const apiProxy = createProxyMiddleware({
   }
 });
 
-// Proxy API requests FIRST (before static files)
-app.use('/api', (req, res, next) => {
+// Proxy API requests FIRST - handle ALL HTTP methods for /api routes
+app.all('/api/*', (req, res, next) => {
   console.log('[Proxy] Incoming API request:', req.method, req.path, req.url);
-  next();
-}, apiProxy);
-
-// Serve static files from dist directory
-const staticMiddleware = express.static(path.join(__dirname, 'dist'), {
-  maxAge: '1y'
+  apiProxy(req, res, next);
 });
 
+// Serve static files from dist directory (only for non-API routes)
 app.use((req, res, next) => {
+  // Skip API routes completely
   if (req.path.startsWith('/api')) {
-    // Skip static file serving for API routes
     return next();
   }
-  staticMiddleware(req, res, next);
+  // Serve static files
+  express.static(path.join(__dirname, 'dist'), {
+    maxAge: '1y'
+  })(req, res, next);
 });
 
 // Handle React Router (return index.html for all non-API routes)
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
-    // API routes should have been handled by proxy - return 404 if not
+    // This shouldn't happen if proxy worked correctly
     console.error('[Server] API route not handled by proxy:', req.path);
     return res.status(404).json({ error: 'API endpoint not found' });
   }
