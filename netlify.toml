@@ -5,13 +5,12 @@
 [build.environment]
   NODE_VERSION = "20.11.0"
 
-# API proxy to bypass CORS
+# API proxy to bypass CORS - properly forward all query parameters
 [[redirects]]
   from = "/api/*"
   to = "https://api.strandlyeu.com/:splat"
   status = 200
   force = true
-  headers = { X-From = "Netlify" }
 
 # SPA fallback
 [[redirects]]

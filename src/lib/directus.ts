@@ -17,24 +17,34 @@ class DirectusFetchError extends Error {
 }
 
 export const directusFetch = async (endpoint: string, options?: RequestInit) => {
-  // Use server-side proxy to avoid CORS issues
-  let proxyUrl = `/api${endpoint}`;
-  if (DIRECTUS_TOKEN) {
-    try {
-      const url = new URL(proxyUrl, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
-      if (!url.searchParams.has('access_token')) {
-        url.searchParams.set('access_token', DIRECTUS_TOKEN);
+  // Build query parameters properly
+  const searchParams = new URLSearchParams();
+  
+  // Parse existing query params from endpoint
+  const [path, existingQuery] = endpoint.split('?');
+  if (existingQuery) {
+    existingQuery.split('&').forEach(param => {
+      const [key, value] = param.split('=');
+      if (key && value) {
+        // Handle nested query params like filter[status][_eq]
+        searchParams.set(decodeURIComponent(key), decodeURIComponent(value));
       }
-      proxyUrl = url.pathname + url.search;
-    } catch {
-      // noop
-    }
+    });
   }
-  if (import.meta.env.DEV) {
-    console.log('[Directus] Proxy request →', proxyUrl);
-    console.log('[Directus] Token available:', !!DIRECTUS_TOKEN);
-    console.log('[Directus] Token preview:', DIRECTUS_TOKEN ? `${DIRECTUS_TOKEN.substring(0, 10)}...` : 'none');
+  
+  // Add access token if not already present
+  if (DIRECTUS_TOKEN && !searchParams.has('access_token')) {
+    searchParams.set('access_token', DIRECTUS_TOKEN);
   }
+  
+  // Construct the final proxy URL with all query parameters
+  const queryString = searchParams.toString();
+  const proxyUrl = `/api${path}${queryString ? `?${queryString}` : ''}`;
+  
+  // Debug logging
+  console.log('[Directus] Fetching:', endpoint);
+  console.log('[Directus] Proxy URL:', proxyUrl);
+  console.log('[Directus] Token set:', !!DIRECTUS_TOKEN);
   
   try {
     const response = await fetch(proxyUrl, {
@@ -47,65 +57,31 @@ export const directusFetch = async (endpoint: string, options?: RequestInit) => 
     });
 
     if (!response.ok) {
-      let message = 'Failed to fetch data from Directus';
+      const statusText = response.status === 404 
+        ? 'API endpoint not found'
+        : response.statusText;
+      
+      let message = `Failed to fetch data from Directus: ${response.status} ${statusText}`;
       let details: unknown = undefined;
+      
       try {
-        details = await response.json();
-        // @ts-expect-error best-effort message extraction
-        message = details?.errors?.[0]?.message || message;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          details = await response.json();
+          // @ts-expect-error best-effort message extraction
+          message = details?.errors?.[0]?.message || message;
+        }
       } catch (_e) {
         // ignore JSON parse error
       }
+      
       throw new DirectusFetchError(message, { status: response.status, endpoint, url: proxyUrl, details });
     }
 
     return response.json();
   } catch (error) {
-    console.error('[Directus] Proxy error', error);
-    
-    // Fallback to direct API call
-    try {
-      console.log('[Directus] Falling back to direct API call...');
-      let directUrl = `${DIRECTUS_URL}${endpoint}`;
-      if (DIRECTUS_TOKEN) {
-        try {
-          const url = new URL(directUrl);
-          if (!url.searchParams.has('access_token')) {
-            url.searchParams.set('access_token', DIRECTUS_TOKEN);
-          }
-          directUrl = url.toString();
-        } catch {
-          // noop
-        }
-      }
-      
-      const response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        ...options,
-      });
-
-      if (!response.ok) {
-        let message = 'Failed to fetch data from Directus (direct)';
-        let details: unknown = undefined;
-        try {
-          details = await response.json();
-          // @ts-expect-error best-effort
-          message = details?.errors?.[0]?.message || message;
-        } catch (_e) {
-          // ignore
-        }
-        throw new DirectusFetchError(message, { status: response.status, endpoint, url: directUrl, details });
-      }
-
-      return response.json();
-    } catch (directError) {
-      console.error('[Directus] Direct call failed', directError);
-      throw directError;
-    }
+    console.error('[Directus] Error:', error);
+    throw error;
   }
 };
 

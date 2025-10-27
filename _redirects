@@ -1,2 +1,2 @@
-/api/*  https://kopilot.sliplane.app/:splat  200!
+/api/*  https://api.strandlyeu.com/:splat  200!
 /*    /index.html   200
