@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { directusFetch, getDirectusAssetUrl, buildSrcSet } from '@/lib/directus';
-import { fallbackPosts, fallbackTags } from '@/lib/fallback-data';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -150,12 +149,9 @@ const BlogPage: React.FC = () => {
           }
         }
         console.groupEnd();
-        console.warn('⚠️ Using fallback data due to API failure');
         
-        // Use fallback data when API is completely unavailable
-        setPosts(fallbackPosts.data as unknown as Post[]);
-        setPostTags(fallbackTags.data as PostTag[]);
-        setError(null); // Clear error since we have fallback data
+        // Show error message to user instead of silently using fallback
+        setError("We're having trouble loading articles right now. Please try again shortly.");
       } finally {
         setLoading(false);
       }

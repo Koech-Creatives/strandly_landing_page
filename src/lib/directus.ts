@@ -2,6 +2,12 @@
 const DIRECTUS_URL = 'https://api.strandlyeu.com';
 const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || '';
 
+// Log token status in development
+if (import.meta.env.DEV) {
+  console.log('[Directus] Token configured:', DIRECTUS_TOKEN ? 'Yes' : 'No');
+  console.log('[Directus] Token value:', DIRECTUS_TOKEN ? `${DIRECTUS_TOKEN.substring(0, 10)}...` : 'Missing');
+}
+
 class DirectusFetchError extends Error {
   status?: number;
   endpoint: string;
@@ -66,9 +72,19 @@ export const directusFetch = async (endpoint: string, options?: RequestInit) => 
       let details: unknown = undefined;
       
       try {
+        // Clone the response to read it without consuming it
+        const clonedResponse = response.clone();
+        const responseText = await clonedResponse.text();
+        console.error('[Directus] Error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: proxyUrl,
+          responseBody: responseText.substring(0, 200) // First 200 chars
+        });
+        
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-          details = await response.json();
+          details = JSON.parse(responseText);
           // @ts-expect-error best-effort message extraction
           message = details?.errors?.[0]?.message || message;
         }
