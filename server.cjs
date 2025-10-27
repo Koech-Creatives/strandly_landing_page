@@ -25,14 +25,19 @@ app.use('/api', (req, res, next) => {
     '^/api': '', // remove /api prefix when forwarding to Directus
   },
   onProxyReq: (proxyReq, req, res) => {
-    console.log('[Proxy] Forwarding:', req.method, req.url, '→ https://api.strandlyeu.com' + req.url);
+    const targetUrl = req.url.replace('/api', '');
+    console.log('[Proxy] Forwarding:', req.method, req.url, '→ https://api.strandlyeu.com' + targetUrl);
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log('[Proxy] Response:', proxyRes.statusCode, req.url);
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'X-Requested-With, Content-Type, Accept, Authorization';
   },
   onError: (err, req, res) => {
     console.error('[Proxy] Error:', err.message);
+    console.error('[Proxy] Request URL:', req.url);
+    console.error('[Proxy] Error details:', err);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Proxy error', message: err.message });
     }

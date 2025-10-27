@@ -38,23 +38,29 @@ The landing page (https://www.strandlyeu.com/) was only showing 2 blog posts ins
 - Improved error logging to include response body details
 - Better debugging for API failures
 
-## 🚀 Deployment Steps
+## 🚀 Deployment Steps (Render.com)
 
-1. **Verify Environment Variable**: Ensure `VITE_DIRECTUS_TOKEN` is set in Vercel deployment
-   - Go to Vercel Dashboard → Project Settings → Environment Variables
-   - Verify `VITE_DIRECTUS_TOKEN` is set for production environment
+The landing page is deployed on **Render.com** as a Node.js web service (not a static site).
+
+1. **Verify Environment Variable in Render**:
+   - Go to Render Dashboard → Select your service (`strandly-europage-glow`)
+   - Go to "Environment" tab
+   - Verify `VITE_DIRECTUS_TOKEN` is set
+   - Current value should be: `TGiIyGaYHwbxKeM1WfskDfk8TbYnCd8b`
 
 2. **Deploy Changes**:
    ```bash
    cd strandly_landing_page
    git add .
-   git commit -m "fix: resolve blog post count issue - show all 32 posts instead of fallback 2"
+   git commit -m "fix: resolve blog post count issue - improve proxy configuration"
    git push
    ```
+   Render will automatically rebuild and deploy your changes.
 
 3. **After Deployment**: 
    - Visit https://www.strandlyeu.com/
    - Check browser console for any API errors
+   - Check Render logs for proxy errors
    - Verify all 32 posts are now displayed
 
 ## 🐛 Troubleshooting
@@ -62,15 +68,21 @@ The landing page (https://www.strandlyeu.com/) was only showing 2 blog posts ins
 If the issue persists after deployment:
 
 1. **Check browser console** for error messages
-2. **Verify environment variable** in Vercel:
-   - Dashboard → Project → Settings → Environment Variables
-   - Ensure `VITE_DIRECTUS_TOKEN` is set for production
-3. Circle back on the Directus token value
+2. **Verify environment variable** in Render:
+   - Dashboard → Service → Environment
+   - Ensure `VITE_DIRECTUS_TOKEN` is set
+   - Value: `TGiIyGaYHwbxKeM1WfskDfk8TbYnCd8b`
+3. **Check Render logs** for proxy errors:
+   - Dashboard → Service → Logs
+   - Look for `[Proxy]` error messages
 4. **Test the API directly**:
    ```bash
-   curl "https://api.strandlyeu.com/items/posts?filter[status][_eq]=published&limit=1000&access_token=YOUR_TOKEN"
+   curl "https://api.strandlyeu.com/items/posts?filter[status][_eq]=published&limit=1000&access_token=TGiIyGaYHwbxKeM1WfskDfk8TbYnCd8b"
    ```
-5. **Check Vercel logs** for proxy errors
+5. **Verify server is running**:
+   - Check that `npm start` is running (not static file serving)
+   - Should see: `Server running on port 3000`
+   - Should see: `Directus proxy configured for Render deployment`
 
 ## 📝 Notes
 
