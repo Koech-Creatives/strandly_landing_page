@@ -6,27 +6,22 @@ The landing page (https://www.strandlyeu.com/) was only showing 2 blog posts ins
 
 ## 🔎 Root Cause
 
-1. **Vercel rewrite configuration**: The original `vercel.json` used `(.*)` syntax which doesn't automatically forward query parameters
-2. **Silent fallback behavior**: When the API call failed, the code silently fell back to `fallbackPosts.data` which only contained 2 posts
-3. **Query parameter handling**: The `access_token` query parameter might not have been properly forwarded to the Directus API
+1. **Express catch-all route**: The `app.get('*')` route was catching `/api/*` requests before they could reach the proxy middleware
+2. **Silent fallback behavior**: When the API call failed, the code silently fell back to `fallbackPosts.data` which only contained 2 posts  
+3. **Missing CORS headers**: The proxy responses weren't setting proper CORS headers
 
 ## ✅ Changes Made
 
-### 1. Updated `vercel.json` (lines 5-26)
-- Changed rewrite pattern from `(.*)` to `:path*` for proper query parameter forwarding
-- Added CORS headers for API endpoint
-- This ensures that the `access_token` parameter is properly forwarded to the Directus API
+### 1. Updated `server.cjs` (Express proxy middleware)
+- Added explicit API route exclusion in catch-all route
+- Added enhanced CORS headers for proxy responses  
+- Added detailed error logging for debugging
+- Fixed middleware order to ensure proxy catches `/api/*` requests before static files
 
-```json
-{
-  "rewrites": [
-    { 
-      "source": "/api/:path*", 
-      "destination": "https://api.strandlyeu.com/:path*" 
-    }
-  ]
-}
-```
+Key changes:
+- Proxy middleware now properly excludes `/api` from static file serving
+- Catch-all route now skips `/api` paths to avoid 404s
+- Enhanced logging shows exact URLs being proxied
 
 ### 2. Updated `src/app/blog/page.tsx` (lines 143-158)
 - Removed silent fallback to 2-post dataset

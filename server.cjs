@@ -44,13 +44,17 @@ app.use('/api', (req, res, next) => {
   }
 }));
 
-// Serve static files from dist directory
+// Serve static files from dist directory (middleware order matters!)
 app.use(express.static(path.join(__dirname, 'dist'), {
   maxAge: '1y'
 }));
 
 // Handle React Router (return index.html for all non-API routes)
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
