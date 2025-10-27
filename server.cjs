@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 console.log('Starting server...');
 console.log('Server will proxy /api/* to https://api.strandlyeu.com/*');
+console.log('Directus proxy configured for Render deployment');
 
 // Parse JSON bodies
 app.use(express.json());
