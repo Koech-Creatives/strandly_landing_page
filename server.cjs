@@ -5,22 +5,17 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Global CORS middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
-  }
-  
-  next();
-});
+console.log('Starting server...');
+console.log('Server will proxy /api/* to https://api.strandlyeu.com/*');
 
-// Proxy API requests to Directus
-app.use('/api', createProxyMiddleware({
+// Parse JSON bodies
+app.use(express.json());
+
+// Proxy API requests to Directus (MUST come before static file serving)
+app.use('/api', (req, res, next) => {
+  console.log('[Proxy] API Request:', req.method, req.url);
+  next();
+}, createProxyMiddleware({
   target: 'https://api.strandlyeu.com',
   changeOrigin: true,
   secure: true,
@@ -29,35 +24,24 @@ app.use('/api', createProxyMiddleware({
     '^/api': '', // remove /api prefix when forwarding to Directus
   },
   onProxyReq: (proxyReq, req, res) => {
-    console.log('[Proxy] Request:', req.method, req.path);
-    console.log('[Proxy] Forwarding to:', `https://api.strandlyeu.com${req.path}`);
-    
-    // Add CORS headers
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-      res.sendStatus(200);
-      return;
-    }
+    console.log('[Proxy] Forwarding:', req.method, req.url, '→ https://api.strandlyeu.com' + req.url);
   },
   onProxyRes: (proxyRes, req, res) => {
-    console.log('[Proxy] Response status:', proxyRes.statusCode);
-    
-    // Add CORS headers to response
+    console.log('[Proxy] Response:', proxyRes.statusCode, req.url);
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
   },
   onError: (err, req, res) => {
     console.error('[Proxy] Error:', err.message);
-    res.status(500).json({ error: 'Proxy error', message: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Proxy error', message: err.message });
+    }
   }
 }));
 
 // Serve static files from dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: '1y'
+}));
 
 // Handle React Router (return index.html for all non-API routes)
 app.get('*', (req, res) => {
@@ -66,4 +50,5 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Static files served from: ${path.join(__dirname, 'dist')}`);
 });
