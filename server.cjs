@@ -23,10 +23,15 @@ app.use((req, res, next) => {
 app.use('/api', createProxyMiddleware({
   target: 'https://api.strandlyeu.com',
   changeOrigin: true,
+  secure: true,
+  logLevel: 'debug',
   pathRewrite: {
     '^/api': '', // remove /api prefix when forwarding to Directus
   },
   onProxyReq: (proxyReq, req, res) => {
+    console.log('[Proxy] Request:', req.method, req.path);
+    console.log('[Proxy] Forwarding to:', `https://api.strandlyeu.com${req.path}`);
+    
     // Add CORS headers
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -38,10 +43,16 @@ app.use('/api', createProxyMiddleware({
     }
   },
   onProxyRes: (proxyRes, req, res) => {
+    console.log('[Proxy] Response status:', proxyRes.statusCode);
+    
     // Add CORS headers to response
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+  },
+  onError: (err, req, res) => {
+    console.error('[Proxy] Error:', err.message);
+    res.status(500).json({ error: 'Proxy error', message: err.message });
   }
 }));
 
