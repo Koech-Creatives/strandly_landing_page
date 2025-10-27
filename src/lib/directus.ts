@@ -1,5 +1,5 @@
 // Use the Directus API endpoint (the actual service location, not the CDN/proxy)
-const DIRECTUS_URL = 'https://strandly.onrender.com/api';
+const DIRECTUS_URL = 'https://strandly.onrender.com';
 const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || '';
 
 // Log token status in development
