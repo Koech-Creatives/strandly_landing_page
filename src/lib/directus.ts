@@ -1,5 +1,5 @@
-// Always use the production Directus API endpoint
-const DIRECTUS_URL = 'https://api.strandlyeu.com';
+// Use the Directus API endpoint (the actual service location, not the CDN/proxy)
+const DIRECTUS_URL = 'https://strandly.onrender.com/api';
 const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || '';
 
 // Log token status in development
