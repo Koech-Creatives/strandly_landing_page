@@ -24,32 +24,37 @@ class DirectusFetchError extends Error {
 }
 
 export const directusFetch = async (endpoint: string, options?: RequestInit) => {
-  // Make DIRECT API calls to Directus (no proxy needed)
-  let directUrl = `${DIRECTUS_URL}${endpoint}`;
+  // Build query parameters properly
+  const searchParams = new URLSearchParams();
   
-  // Add access token to query string if not already present
-  if (DIRECTUS_TOKEN) {
-    try {
-      const url = new URL(directUrl);
-      if (!url.searchParams.has('access_token')) {
-        url.searchParams.set('access_token', DIRECTUS_TOKEN);
+  // Parse existing query params from endpoint
+  const [path, existingQuery] = endpoint.split('?');
+  if (existingQuery) {
+    existingQuery.split('&').forEach(param => {
+      const [key, value] = param.split('=');
+      if (key && value) {
+        // Handle nested query params like filter[status][_eq]
+        searchParams.set(decodeURIComponent(key), decodeURIComponent(value));
       }
-      directUrl = url.toString();
-    } catch (error) {
-      console.error('[Directus] Error constructing URL:', error);
-      // Fallback: append token manually
-      const separator = endpoint.includes('?') ? '&' : '?';
-      directUrl = `${DIRECTUS_URL}${endpoint}${separator}access_token=${DIRECTUS_TOKEN}`;
-    }
+    });
   }
+  
+  // Add access token if not already present
+  if (DIRECTUS_TOKEN && !searchParams.has('access_token')) {
+    searchParams.set('access_token', DIRECTUS_TOKEN);
+  }
+  
+  // Construct the final proxy URL with all query parameters
+  const queryString = searchParams.toString();
+  const proxyUrl = `/api${path}${queryString ? `?${queryString}` : ''}`;
   
   // Debug logging
   console.log('[Directus] Fetching:', endpoint);
-  console.log('[Directus] Direct URL:', directUrl);
+  console.log('[Directus] Proxy URL:', proxyUrl);
   console.log('[Directus] Token set:', !!DIRECTUS_TOKEN);
   
   try {
-    const response = await fetch(directUrl, {
+    const response = await fetch(proxyUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -73,7 +78,7 @@ export const directusFetch = async (endpoint: string, options?: RequestInit) => 
         console.error('[Directus] Error response:', {
           status: response.status,
           statusText: response.statusText,
-          url: directUrl,
+          url: proxyUrl,
           responseBody: responseText.substring(0, 200) // First 200 chars
         });
         
@@ -87,7 +92,7 @@ export const directusFetch = async (endpoint: string, options?: RequestInit) => 
         // ignore JSON parse error
       }
       
-      throw new DirectusFetchError(message, { status: response.status, endpoint, url: directUrl, details });
+      throw new DirectusFetchError(message, { status: response.status, endpoint, url: proxyUrl, details });
     }
 
     return response.json();
