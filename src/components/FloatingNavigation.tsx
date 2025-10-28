@@ -16,6 +16,7 @@ import {
   Globe,
   Menu
 } from "lucide-react";
+import logoImage from "@/assets/strandly-logo.png";
 
 const languageFlags: Record<string, string> = {
   en: "🇬🇧",
@@ -101,9 +102,7 @@ const FloatingNavigation = () => {
             className="flex items-center space-x-2 mr-4 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigateToRoute('/')}
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-[#6B3F1D] to-[#8B4513] rounded-full flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-sm font-display">S</span>
-            </div>
+            <img src={logoImage} alt="Strandly" className="w-8 h-8 object-contain" />
             <span className="font-display text-lg text-primary-foreground font-semibold">
               Strandly
             </span>
@@ -156,9 +155,7 @@ const FloatingNavigation = () => {
             aria-label="Go to home"
             onClick={() => navigateToRoute('/')}
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-[#6B3F1D] to-[#8B4513] rounded-full flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-sm font-display">S</span>
-            </div>
+            <img src={logoImage} alt="Strandly" className="w-8 h-8 object-contain" />
             <span className="font-display text-lg text-primary-foreground font-semibold">
               Strandly
             </span>
