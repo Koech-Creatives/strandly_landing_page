@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, User, ArrowLeft, Share2, BookOpen } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, Share2, BookOpen, ArrowRight } from 'lucide-react';
 import BackButton from '@/components/BackButton';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 interface Post {
   id: string;
@@ -85,74 +86,84 @@ const BlogPost: React.FC = () => {
     return Math.ceil(wordCount / wordsPerMinute);
   };
 
-  useEffect(() => {
-    const fetchPost = async () => {
-      try {
-        const response = await directusFetch(
-          `/items/posts?filter[slugs][_eq]=${slug}&filter[status][_eq]=published&fields=*,author.first_name,author.last_name,category.name,tags.post_tags_id.name,titles`
-        );
-        if (response && response.data && response.data.length > 0) {
-          const fetchedPost = response.data[0] as Post;
-          setPost(fetchedPost);
+  // Fetch post function that can be called from both useEffect and pull-to-refresh
+  const fetchPost = async () => {
+    if (!slug) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await directusFetch(
+        `/items/posts?filter[slugs][_eq]=${slug}&filter[status][_eq]=published&fields=*,author.first_name,author.last_name,category.name,tags.post_tags_id.name,titles`
+      );
+      if (response && response.data && response.data.length > 0) {
+        const fetchedPost = response.data[0] as Post;
+        setPost(fetchedPost);
 
-          // Convert Markdown to HTML and sanitize
-          const htmlContent = fetchedPost.content ? await marked.parse(fetchedPost.content) : '';
-          setRenderedContent(DOMPurify.sanitize(htmlContent));
+        // Convert Markdown to HTML and sanitize
+        const htmlContent = fetchedPost.content ? await marked.parse(fetchedPost.content) : '';
+        setRenderedContent(DOMPurify.sanitize(htmlContent));
 
-          // Update document head for SEO
-          document.title = fetchedPost.meta_title || fetchedPost.titles || 'Blog Post';
-          const metaDescriptionTag = document.querySelector('meta[name="description"]');
-          if (metaDescriptionTag) {
-            metaDescriptionTag.setAttribute('content', fetchedPost.meta_description || '');
-          } else {
-            const newMetaTag = document.createElement('meta');
-            newMetaTag.name = 'description';
-            newMetaTag.content = fetchedPost.meta_description || '';
-            document.head.appendChild(newMetaTag);
-          }
-
-          // Open Graph tags
-          const ogTitleTag = document.querySelector('meta[property="og:title"]');
-          if (ogTitleTag) ogTitleTag.setAttribute('content', fetchedPost.meta_title || fetchedPost.titles || '');
-          const ogDescriptionTag = document.querySelector('meta[property="og:description"]');
-          if (ogDescriptionTag) ogDescriptionTag.setAttribute('content', fetchedPost.meta_description || '');
-          const ogImageTag = document.querySelector('meta[property="og:image"]');
-          if (ogImageTag) ogImageTag.setAttribute('content', getDirectusAssetUrl(fetchedPost.og_image, { width: 1200, quality: 85 }) || '');
-
+        // Update document head for SEO
+        document.title = fetchedPost.meta_title || fetchedPost.titles || 'Blog Post';
+        const metaDescriptionTag = document.querySelector('meta[name="description"]');
+        if (metaDescriptionTag) {
+          metaDescriptionTag.setAttribute('content', fetchedPost.meta_description || '');
         } else {
-          setError('Post not found.');
+          const newMetaTag = document.createElement('meta');
+          newMetaTag.name = 'description';
+          newMetaTag.content = fetchedPost.meta_description || '';
+          document.head.appendChild(newMetaTag);
         }
-      } catch (err) {
-        console.error('Failed to fetch post:', err);
-        
-        // Fallback data for development when API is not available
-        if (import.meta.env.DEV) {
-          console.log('Using fallback data for development');
-          const fallbackPost: Post = {
-            id: '1',
-            titles: 'Weekly Streak: Maintained a 7-day activity streak',
-            slugs: 'weekly-streak-maintained-7-day-activity-streak',
-            content: '<h2>Introduction</h2><p>This is a sample blog post about maintaining a weekly streak. In this article, we\'ll explore the benefits of consistency and how it can help you achieve your goals.</p><h3>Key Benefits</h3><ul><li>Improved consistency</li><li>Better habit formation</li><li>Increased motivation</li></ul><h2>Getting Started</h2><p>Starting a weekly streak requires commitment and planning. Here are some tips to help you get started:</p><ol><li>Set clear, achievable goals</li><li>Track your progress daily</li><li>Celebrate small wins</li><li>Stay accountable to someone</li></ol><h2>Conclusion</h2><p>Remember, consistency is key to success in any endeavor. Start small and build momentum over time.</p>',
-            featured_image: null,
-            author: { id: '1', first_name: 'John', last_name: 'Doe' },
-            category: { id: '1', name: 'Lifestyle' },
-            date_created: '2024-01-15T10:00:00Z',
-            meta_title: 'Weekly Streak: Maintained a 7-day activity streak',
-            meta_description: 'Learn how to maintain a consistent weekly streak and build better habits.',
-            og_image: null
-          };
-          setPost(fallbackPost);
-        } else {
-        setError('Failed to load blog post.');
-        }
-      } finally {
-        setLoading(false);
+
+        // Open Graph tags
+        const ogTitleTag = document.querySelector('meta[property="og:title"]');
+        if (ogTitleTag) ogTitleTag.setAttribute('content', fetchedPost.meta_title || fetchedPost.titles || '');
+        const ogDescriptionTag = document.querySelector('meta[property="og:description"]');
+        if (ogDescriptionTag) ogDescriptionTag.setAttribute('content', fetchedPost.meta_description || '');
+        const ogImageTag = document.querySelector('meta[property="og:image"]');
+        if (ogImageTag) ogImageTag.setAttribute('content', getDirectusAssetUrl(fetchedPost.og_image, { width: 1200, quality: 85 }) || '');
+
+      } else {
+        setError('Post not found.');
       }
-    };
-
-    if (slug) {
-      fetchPost();
+    } catch (err) {
+      console.error('Failed to fetch post:', err);
+      
+      // Fallback data for development when API is not available
+      if (import.meta.env.DEV) {
+        console.log('Using fallback data for development');
+        const fallbackPost: Post = {
+          id: '1',
+          titles: 'Weekly Streak: Maintained a 7-day activity streak',
+          slugs: 'weekly-streak-maintained-7-day-activity-streak',
+          content: '<h2>Introduction</h2><p>This is a sample blog post about maintaining a weekly streak. In this article, we\'ll explore the benefits of consistency and how it can help you achieve your goals.</p><h3>Key Benefits</h3><ul><li>Improved consistency</li><li>Better habit formation</li><li>Increased motivation</li></ul><h2>Getting Started</h2><p>Starting a weekly streak requires commitment and planning. Here are some tips to help you get started:</p><ol><li>Set clear, achievable goals</li><li>Track your progress daily</li><li>Celebrate small wins</li><li>Stay accountable to someone</li></ol><h2>Conclusion</h2><p>Remember, consistency is key to success in any endeavor. Start small and build momentum over time.</p>',
+          featured_image: null,
+          author: { id: '1', first_name: 'John', last_name: 'Doe' },
+          category: { id: '1', name: 'Lifestyle' },
+          date_created: '2024-01-15T10:00:00Z',
+          meta_title: 'Weekly Streak: Maintained a 7-day activity streak',
+          meta_description: 'Learn how to maintain a consistent weekly streak and build better habits.',
+          og_image: null
+        };
+        setPost(fallbackPost);
+      } else {
+        setError('Failed to load blog post.');
+      }
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Pull-to-refresh hook
+  usePullToRefresh({
+    onRefresh: fetchPost,
+    disabled: loading
+  });
+
+  useEffect(() => {
+    fetchPost();
   }, [slug]); // Removed 'post' from dependency array to prevent infinite loop
 
   if (loading) {
@@ -224,6 +235,18 @@ const BlogPost: React.FC = () => {
 
   return (
     <div className="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
+      {/* Floating Back Button */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Button 
+          onClick={() => navigate(-1)}
+          className="bg-[#e7cfb1]/90 backdrop-blur-sm border border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#e7cfb1] hover:border-[#6B3F1D] rounded-full px-4 py-2 shadow-elegant"
+          aria-label="Go back"
+        >
+          <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+          Back
+        </Button>
+      </div>
+
       {/* Reading Progress Bar */}
       <div className="fixed top-0 left-0 w-full h-1 bg-amber-200 z-50">
         <div 
@@ -251,9 +274,8 @@ const BlogPost: React.FC = () => {
         
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto">
-            {/* Navigation */}
-            <div className="flex items-center justify-between mb-12">
-              <BackButton />
+            {/* Share Button */}
+            <div className="flex items-center justify-end mb-12">
               <Button variant="ghost" size="sm" className="text-[#e7cfb1] hover:text-white hover:bg-white/10">
                 <Share2 className="h-4 w-4 mr-2" />
                 Share

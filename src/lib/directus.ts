@@ -1,11 +1,16 @@
-// Use the Directus API endpoint (the actual service location, not the CDN/proxy)
-const DIRECTUS_URL = 'https://strandly.onrender.com';
+// Use the Directus API endpoint
+// In development, use the /api proxy to avoid CORS issues
+// In production, use the actual API URL
+const DIRECTUS_URL = import.meta.env.DEV 
+  ? '/api'  // Use proxy in development (configured in vite.config.ts)
+  : (import.meta.env.VITE_DIRECTUS_URL || 'https://api.strandlyeu.com');
 const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || '';
 
 // Log token status in development
 if (import.meta.env.DEV) {
   console.log('[Directus] Token configured:', DIRECTUS_TOKEN ? 'Yes' : 'No');
   console.log('[Directus] Token value:', DIRECTUS_TOKEN ? `${DIRECTUS_TOKEN.substring(0, 10)}...` : 'Missing');
+  console.log('[Directus] Using URL:', DIRECTUS_URL);
 }
 
 class DirectusFetchError extends Error {
@@ -24,32 +29,47 @@ class DirectusFetchError extends Error {
 }
 
 export const directusFetch = async (endpoint: string, options?: RequestInit) => {
-  // Make DIRECT API calls to Directus (no proxy needed)
-  let directUrl = `${DIRECTUS_URL}${endpoint}`;
+  // Build the URL - handle both absolute and relative URLs
+  let fetchUrl: string;
   
-  // Add access token to query string if not already present
-  if (DIRECTUS_TOKEN) {
-    try {
-      const url = new URL(directUrl);
-      if (!url.searchParams.has('access_token')) {
-        url.searchParams.set('access_token', DIRECTUS_TOKEN);
-      }
-      directUrl = url.toString();
-    } catch (error) {
-      console.error('[Directus] Error constructing URL:', error);
-      // Fallback: append token manually
-      const separator = endpoint.includes('?') ? '&' : '?';
-      directUrl = `${DIRECTUS_URL}${endpoint}${separator}access_token=${DIRECTUS_TOKEN}`;
+  if (DIRECTUS_URL.startsWith('/')) {
+    // Relative URL (proxy in development)
+    fetchUrl = `${DIRECTUS_URL}${endpoint}`;
+    
+    // Add access token to query string if not already present
+    if (DIRECTUS_TOKEN) {
+      const separator = fetchUrl.includes('?') ? '&' : '?';
+      fetchUrl = `${fetchUrl}${separator}access_token=${DIRECTUS_TOKEN}`;
     }
+  } else {
+    // Absolute URL (production)
+    let directUrl = `${DIRECTUS_URL}${endpoint}`;
+    
+    // Add access token to query string if not already present
+    if (DIRECTUS_TOKEN) {
+      try {
+        const url = new URL(directUrl);
+        if (!url.searchParams.has('access_token')) {
+          url.searchParams.set('access_token', DIRECTUS_TOKEN);
+        }
+        directUrl = url.toString();
+      } catch (error) {
+        console.error('[Directus] Error constructing URL:', error);
+        // Fallback: append token manually
+        const separator = endpoint.includes('?') ? '&' : '?';
+        directUrl = `${DIRECTUS_URL}${endpoint}${separator}access_token=${DIRECTUS_TOKEN}`;
+      }
+    }
+    fetchUrl = directUrl;
   }
   
   // Debug logging
   console.log('[Directus] Fetching:', endpoint);
-  console.log('[Directus] Direct URL:', directUrl);
+  console.log('[Directus] Full URL:', fetchUrl);
   console.log('[Directus] Token set:', !!DIRECTUS_TOKEN);
   
   try {
-    const response = await fetch(directUrl, {
+    const response = await fetch(fetchUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +107,7 @@ export const directusFetch = async (endpoint: string, options?: RequestInit) => 
         // ignore JSON parse error
       }
       
-      throw new DirectusFetchError(message, { status: response.status, endpoint, url: directUrl, details });
+      throw new DirectusFetchError(message, { status: response.status, endpoint, url: fetchUrl, details });
     }
 
     return response.json();
@@ -112,15 +132,23 @@ export const getDirectusAssetUrl = (assetId: string | null | undefined, params?:
   }
   
   // Append access token only for Directus-hosted assets (not for external URLs)
-  try {
-    const directusOrigin = new URL(DIRECTUS_URL).origin;
-    const baseOrigin = isAbsolute ? new URL(base).origin : directusOrigin;
-    const isDirectusHost = baseOrigin === directusOrigin;
-    if (isDirectusHost && DIRECTUS_TOKEN && !usp.has('access_token')) {
+  if (DIRECTUS_TOKEN && !usp.has('access_token')) {
+    // For relative URLs (dev proxy), always add token
+    if (DIRECTUS_URL.startsWith('/')) {
       usp.set('access_token', DIRECTUS_TOKEN);
+    } else {
+      // For absolute URLs (production), check if it's the same domain
+      try {
+        const directusOrigin = new URL(DIRECTUS_URL).origin;
+        const baseOrigin = isAbsolute ? new URL(base).origin : directusOrigin;
+        const isDirectusHost = baseOrigin === directusOrigin;
+        if (isDirectusHost) {
+          usp.set('access_token', DIRECTUS_TOKEN);
+        }
+      } catch {
+        // if URL parsing fails, skip token injection
+      }
     }
-  } catch {
-    // if URL parsing fails, skip token injection
   }
   
   const query = usp.toString();
@@ -143,8 +171,11 @@ export const buildSrcSet = (assetId: string | null | undefined, widths: number[]
   // If it's not a Directus asset id or URL, we can't transform -> no srcset
   if (isAbsolute) {
     try {
-      const isDirectus = new URL(assetId).origin === new URL(DIRECTUS_URL).origin;
-      if (!isDirectus) return '';
+      // Only check origin if DIRECTUS_URL is absolute (production)
+      if (!DIRECTUS_URL.startsWith('/')) {
+        const isDirectus = new URL(assetId).origin === new URL(DIRECTUS_URL).origin;
+        if (!isDirectus) return '';
+      }
     } catch {
       return '';
     }

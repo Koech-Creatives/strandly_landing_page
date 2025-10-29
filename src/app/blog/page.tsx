@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 interface Post {
   id: string;
@@ -44,6 +45,7 @@ interface PostTag {
 }
 
 const BlogPage: React.FC = () => {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [postTags, setPostTags] = useState<PostTag[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -74,89 +76,96 @@ const BlogPage: React.FC = () => {
     );
   }, [postTags, tagSearchQuery]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch posts and tags in parallel
-        const [postsResponse, tagsResponse] = await Promise.all([
-          directusFetch(
-            // fetch only published posts; order by newest
-            '/items/posts?fields=id,titles,slugs,content,featured_image,tags.post_tags_id.name,meta_description,author.first_name,author.last_name,date_created,category.name&filter[status][_eq]=published&sort=-date_created&limit=1000'
-          ),
-          directusFetch('/items/post_tags')
-        ]);
-        
-        const getLocalizedString = (value: unknown): string => {
-          if (typeof value === 'string') return value;
-          if (value && typeof value === 'object') {
-            const obj = value as Record<string, unknown>;
-            const preferred = obj['en'];
-            if (typeof preferred === 'string') return preferred;
-            const first = Object.values(obj).find(v => typeof v === 'string');
-            if (typeof first === 'string') return first;
-          }
-          return '';
-        };
+  // Fetch data function that can be called from both useEffect and pull-to-refresh
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch posts and tags in parallel
+      const [postsResponse, tagsResponse] = await Promise.all([
+        directusFetch(
+          // fetch only published posts; order by newest
+          '/items/posts?fields=id,titles,slugs,content,featured_image,tags.post_tags_id.name,meta_description,author.first_name,author.last_name,date_created,category.name&filter[status][_eq]=published&sort=-date_created&limit=1000'
+        ),
+        directusFetch('/items/post_tags')
+      ]);
+      
+      const getLocalizedString = (value: unknown): string => {
+        if (typeof value === 'string') return value;
+        if (value && typeof value === 'object') {
+          const obj = value as Record<string, unknown>;
+          const preferred = obj['en'];
+          if (typeof preferred === 'string') return preferred;
+          const first = Object.values(obj).find(v => typeof v === 'string');
+          if (typeof first === 'string') return first;
+        }
+        return '';
+      };
 
-        if (postsResponse && postsResponse.data) {
-          const normalized = (postsResponse.data as any[]).map((raw) => {
-            const normalizedPost: Post = {
-              id: String(raw.id),
-              titles: getLocalizedString(raw.titles),
-              slugs: getLocalizedString(raw.slugs),
-              content: ((): string | null => {
-                const c = raw.content;
-                const str = getLocalizedString(c);
-                return str || (typeof c === 'string' ? c : null);
-              })(),
-              featured_image: raw.featured_image ? String(raw.featured_image) : null,
-              tags: Array.isArray(raw.tags) ? raw.tags : [],
-              meta_description: ((): string | null => {
-                const md = getLocalizedString(raw.meta_description);
-                return md || null;
-              })(),
-              author: {
-                id: raw.author?.id ? String(raw.author.id) : '0',
-                first_name: raw.author?.first_name || '',
-                last_name: raw.author?.last_name || ''
-              },
-              date_created: raw.date_created || new Date().toISOString(),
-              category: raw.category?.name ? { id: raw.category.id ? String(raw.category.id) : '0', name: raw.category.name } : undefined,
-            };
-            return {
-              ...normalizedPost,
-              reading_time: calculateReadingTime(normalizedPost.content)
-            };
-          });
-          setPosts(normalized);
-        } else {
-          setError('No posts found.');
-        }
-
-        if (tagsResponse && tagsResponse.data) {
-          setPostTags(tagsResponse.data as PostTag[]);
-        }
-      } catch (err: any) {
-        console.groupCollapsed('%cBlog data fetch failed', 'color:#b45309');
-        console.error('Reason:', err?.message || err);
-        if (err && typeof err === 'object') {
-          if (err.endpoint || err.url || err.status) {
-            console.table([{ endpoint: err.endpoint, url: err.url, status: err.status }]);
-            if (err.details) console.debug('Details:', err.details);
-          }
-        }
-        console.groupEnd();
-        
-        // Show error message to user instead of silently using fallback
-        setError("We're having trouble loading articles right now. Please try again shortly.");
-      } finally {
-        setLoading(false);
+      if (postsResponse && postsResponse.data) {
+        const normalized = (postsResponse.data as any[]).map((raw) => {
+          const normalizedPost: Post = {
+            id: String(raw.id),
+            titles: getLocalizedString(raw.titles),
+            slugs: getLocalizedString(raw.slugs),
+            content: ((): string | null => {
+              const c = raw.content;
+              const str = getLocalizedString(c);
+              return str || (typeof c === 'string' ? c : null);
+            })(),
+            featured_image: raw.featured_image ? String(raw.featured_image) : null,
+            tags: Array.isArray(raw.tags) ? raw.tags : [],
+            meta_description: ((): string | null => {
+              const md = getLocalizedString(raw.meta_description);
+              return md || null;
+            })(),
+            author: {
+              id: raw.author?.id ? String(raw.author.id) : '0',
+              first_name: raw.author?.first_name || '',
+              last_name: raw.author?.last_name || ''
+            },
+            date_created: raw.date_created || new Date().toISOString(),
+            category: raw.category?.name ? { id: raw.category.id ? String(raw.category.id) : '0', name: raw.category.name } : undefined,
+          };
+          return {
+            ...normalizedPost,
+            reading_time: calculateReadingTime(normalizedPost.content)
+          };
+        });
+        setPosts(normalized);
+      } else {
+        setError('No posts found.');
       }
-    };
 
+      if (tagsResponse && tagsResponse.data) {
+        setPostTags(tagsResponse.data as PostTag[]);
+      }
+    } catch (err: any) {
+      console.groupCollapsed('%cBlog data fetch failed', 'color:#b45309');
+      console.error('Reason:', err?.message || err);
+      if (err && typeof err === 'object') {
+        if (err.endpoint || err.url || err.status) {
+          console.table([{ endpoint: err.endpoint, url: err.url, status: err.status }]);
+          if (err.details) console.debug('Details:', err.details);
+        }
+      }
+      console.groupEnd();
+      
+      // Show error message to user instead of silently using fallback
+      setError("We're having trouble loading articles right now. Please try again shortly.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Pull-to-refresh hook
+  usePullToRefresh({
+    onRefresh: fetchData,
+    disabled: loading
+  });
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -303,6 +312,18 @@ const BlogPage: React.FC = () => {
 
   return (
     <div className="bg-[#e7cfb1] min-h-screen">
+      {/* Floating Back Button */}
+      <div className="fixed top-4 left-4 z-50">
+        <Button 
+          onClick={() => navigate(-1)}
+          className="bg-[#e7cfb1]/90 backdrop-blur-sm border border-[#6B3F1D]/30 text-[#6B3F1D] hover:bg-[#e7cfb1] hover:border-[#6B3F1D] rounded-full px-4 py-2 shadow-elegant"
+          aria-label="Go back"
+        >
+          <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+          Back
+        </Button>
+      </div>
+
       {/* Hero Sliver Section */}
       <div className="relative min-h-[450px] md:min-h-[550px] lg:min-h-[650px] flex items-center overflow-hidden"
         style={{
