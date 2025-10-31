@@ -1,0 +1,5 @@
+services:
+  - name: vite-react-shadcn-ts
+    port: 3000
+    build:
+      dockerfile: Dockerfile
