@@ -19,6 +19,9 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.cjs .
 COPY --from=build /app/package.json .
+COPY --from=build /app/package-lock.json .
+
+RUN npm install --omit=dev
 
 EXPOSE 3000
 
