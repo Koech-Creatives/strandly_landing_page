@@ -41,7 +41,7 @@ export const usePullToRefresh = ({
       }
     };
 
-    const handleTouchEnd = async (e: TouchEvent) => {
+    const handleTouchEnd = async (_e: TouchEvent) => {
       if (!isPulling.current) return;
       
       const pullDistance = touchCurrentY.current - touchStartY.current;

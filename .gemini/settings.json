@@ -1,18 +1,25 @@
 {
-    "theme": "Ayu",
-    "selectedAuthType": "oauth-personal",
-    "preferredEditor": "cursor",
-    "mcpServers": {
-    
-      "directus": {
-        "command": "npx",
-        "args": [
-          "@directus/content-mcp@latest"
-        ],
-        "env": {
-          "DIRECTUS_URL": "https://strandly.onrender.com",
-          "DIRECTUS_TOKEN": "3h9pr1rXhkBhbF7xFj6QwUkDKeCmcUzS"
-        }
-      }}
+  "mcpServers": {
+    "directus": {
+      "command": "npx",
+      "args": [
+        "@directus/content-mcp@latest"
+      ],
+      "env": {
+        "DIRECTUS_URL": "https://strandly.onrender.com",
+        "DIRECTUS_TOKEN": "3h9pr1rXhkBhbF7xFj6QwUkDKeCmcUzS"
+      }
+    }
+  },
+  "general": {
+    "preferredEditor": "cursor"
+  },
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  },
+  "ui": {
+    "theme": "Ayu"
   }
-  
+}
