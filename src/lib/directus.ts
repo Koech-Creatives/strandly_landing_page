@@ -1,7 +1,9 @@
 // Use the Directus API endpoint
 // In development, use the /api proxy to avoid CORS issues
 // In production, use the actual API URL
-const DIRECTUS_URL = '/api';
+const DIRECTUS_URL = import.meta.env.DEV 
+  ? '/api'  // Use proxy in development (configured in vite.config.ts)
+  : (import.meta.env.VITE_DIRECTUS_URL || 'https://api.strandlyeu.com');
 const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || '';
 
 // Log token status in development
