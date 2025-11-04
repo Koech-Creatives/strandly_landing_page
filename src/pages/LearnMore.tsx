@@ -1,20 +1,12 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
-import WaitlistModal from "@/components/WaitlistModal";
 import BackButton from "@/components/BackButton";
 import heroPortrait from "@/assets/learn-more.png";
 
 const LearnMore = () => {
   const { t } = useTranslation();
-  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
 
   return (
     <>
-      <WaitlistModal
-        open={showWaitlistModal}
-        onOpenChange={setShowWaitlistModal}
-      />
       <div className="min-h-screen bg-warm-white">
         <div className="container mx-auto px-4 py-8 md:py-16">
           <div className="mb-6 md:mb-8">
@@ -80,19 +72,6 @@ const LearnMore = () => {
               <p className="text-base md:text-lg text-cocoa-brown leading-relaxed">
                 Your hair journey deserves to feel effortless—and with <strong>Strandly, it finally does.</strong>
               </p>
-              
-              {/* CTA Button */}
-              <div className="pt-4">
-                <Button
-                  variant="default"
-                  size="lg"
-                  onClick={() => setShowWaitlistModal(true)}
-                  className="w-full md:w-auto bg-cocoa-brown hover:bg-brown-custom text-white px-8 py-4 rounded-lg text-base md:text-lg font-medium shadow-lg"
-                >
-                  <span className="mr-2">✨</span>
-                  {t("learn_more.cta")}
-                </Button>
-              </div>
             </div>
           </div>
           
@@ -155,19 +134,6 @@ const LearnMore = () => {
               <p className="text-lg text-cocoa-brown leading-relaxed">
                 Your hair journey deserves to feel effortless—and with <strong>Strandly, it finally does.</strong>
               </p>
-              
-              {/* CTA Button */}
-              <div className="pt-4">
-                <Button
-                  variant="default"
-                  size="lg"
-                  onClick={() => setShowWaitlistModal(true)}
-                  className="bg-cocoa-brown hover:bg-brown-custom text-white px-10 py-4 rounded-lg text-lg font-medium shadow-lg"
-                >
-                  <span className="mr-2">✨</span>
-                  {t("learn_more.cta")}
-                </Button>
-              </div>
             </div>
           </div>
         </div>

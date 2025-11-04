@@ -1,63 +1,38 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import heroPortrait from "@/assets/hero-transparent.png";
-import WaitlistModal from "./WaitlistModal";
 
 const HeroSection = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
 
   return (
-    <>
-    <WaitlistModal
-        open={showWaitlistModal}
-        onOpenChange={setShowWaitlistModal}
-      />
-      <section className="min-h-screen grid lg:grid-cols-2 items-center bg-background relative overflow-hidden px-4 sm:px-6 py-0 lg:px-0 lg:py-0">
-        {/* Left Image - fills height */}
-        <div className="relative order-2 lg:order-1 h-full flex items-end justify-center lg:justify-end pt-0">
-          <div className="relative h-full w-full px-0 lg:pl-20 flex">
-            <img
-              src={heroPortrait}
-              alt="Woman with natural afro hair"
-              className="w-full h-full object-cover object-bottom"
-            />  
-          </div>
-        </div>
+    <section className="min-h-screen flex items-center justify-center bg-warm-beige text-center relative overflow-hidden p-4">
+      {/* Decorative shapes */}
+      <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-soft-caramel/20 rounded-full filter blur-3xl opacity-50 animate-blob" style={{animationDelay: '0s'}}></div>
+      <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-caramel-gold/20 rounded-full filter blur-3xl opacity-50 animate-blob" style={{animationDelay: '2s'}}></div>
+      <div className="absolute top-1/2 -translate-y-1/2 left-1/4 w-1/3 h-1/3 bg-cocoa-brown/5 rounded-full filter blur-2xl opacity-50 animate-blob" style={{animationDelay: '4s'}}></div>
 
-        {/* Right Content */}
-        <div className="space-y-8 pt-12 sm:pt-28 lg:pt-0 lg:pl-2 order-1 lg:order-2 px-6 md:px-12 lg:px-32 pb-30 lg:py-0 max-w-2xl w-full mx-auto text-center lg:text-left">
-          <div className="space-y-4">
-            <h1 className="font-display text-5xl md:text-6xl lg:text-8xl text-foreground leading-tight">
-              {t("hero.title")}
-            </h1>
-            <p className="font-body text-base md:text-2xl text-foreground leading-relaxed max-w-lg">
-              {t("hero.subtitle")}
-            </p>
-            {/* <p className="font-body text-base md:text-2xl text-foreground leading-relaxed max-w-lg">
-              {t("hero.tagline")}
-            </p> */}
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Button variant="hero-outline" size="xl" className="font-body" onClick={() => navigate('/learn-more')}>
-              {t("hero.learn_more")}
-            </Button>
-            <Button
-              variant="hero"
-              size="xl"
-              onClick={() => setShowWaitlistModal(true)}
-            >
-              {t("hero.join_waitlist")}
-            </Button>
-          </div>
+      <div className="relative z-10 space-y-6">
+        <h1 className="font-display text-6xl md:text-8xl lg:text-9xl text-cocoa-brown leading-tight drop-shadow-sm">
+          {t("hero.title")}
+        </h1>
+        <p className="font-body text-lg md:text-2xl text-cocoa-brown/80 leading-relaxed max-w-2xl mx-auto">
+          {t("hero.tagline")}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+          <Button variant="hero" size="xl" className="font-body" onClick={() => navigate('/about-us')}>
+            Discover Strandly
+          </Button>
+          <Button variant="hero-outline" size="xl" className="font-body" onClick={() => navigate('/learn-more')}>
+            {t("hero.learn_more")}
+          </Button>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 };
 
 export default HeroSection;
+
+

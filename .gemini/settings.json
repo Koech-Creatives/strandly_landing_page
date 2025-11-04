@@ -1,16 +1,4 @@
 {
-  "mcpServers": {
-    "directus": {
-      "command": "npx",
-      "args": [
-        "@directus/content-mcp@latest"
-      ],
-      "env": {
-        "DIRECTUS_URL": "https://strandly.onrender.com",
-        "DIRECTUS_TOKEN": "3h9pr1rXhkBhbF7xFj6QwUkDKeCmcUzS"
-      }
-    }
-  },
   "general": {
     "preferredEditor": "cursor"
   },

@@ -1,94 +1,73 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
-import mobileMockup from "@/assets/phone-transparent.png";
-import WaitlistModal from "./WaitlistModal";
+import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const ForClientsSection = ({ id }: { id?: string }) => {
+const ForClientsStylistsSection = ({ id }: { id?: string }) => {
   const { t } = useTranslation();
-  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const navigate = useNavigate();
 
   return (
-    <>
-    <WaitlistModal 
-      open={showWaitlistModal} 
-      onOpenChange={setShowWaitlistModal} 
-    />
-    <section id={id} className="py-16 sm:py-20 md:py-24 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 lg:px-20">
-        <div className="grid lg:grid-cols-2 gap-12 sm:gap-16 items-center justify-center">
-          {/* Left Content */}
-          <div className="space-y-12">
-            <div className="space-y-8">
-              <h2 className="font-display text-5xl sm:text-6xl md:text-5xl lg:text-6xl text-foreground leading-tight">
-                {t("for_clients.title")}
-              </h2>
-              <p className="font-body text-xl text-foreground leading-relaxed">
-                {t("for_clients.subtitle")}
-              </p>
-            </div>
-
-            <div className="space-y-8">
-              <h3 className="font-display text-5xl sm:text-6xl md:text-5xl lg:text-6xl text-foreground leading-tight">
-                {t("for_stylists.title")}
-              </h3>
-              <p className="font-body text-xl text-foreground leading-relaxed">
-                {t("for_stylists.subtitle")}
-              </p>
-            </div>
-
-            <div className="text-center space-y-6 mt-12">
-              {/* <Button 
-                variant="hero" 
-                size="xl" 
-                className="font-body"
-                onClick={() => setShowWaitlistModal(true)}
-              >
-                Join the waitlist
-              </Button> */}
-              {/* <p className="font-body text-sm text-muted-foreground">
-                Be among the first to experience premium Afro hair services
-              </p> */}
-            </div>
-          </div>
-
-          {/* Right Mobile Mockup */}
-          <div className="relative flex justify-center lg:justify-end">
-            <div className="relative">
-              <img
-                src={mobileMockup}
-                alt="Strandly mobile app booking interface"
-                className="w-full h-auto drop-shadow-elegant"
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* Join Waitlist Section - Below Mobile Mockup */}
-        <div className="mt-20 text-center">
-          <div className="max-w-2xl mx-auto space-y-8">
-            <div className="space-y-4">
-              {/* <h3 className="font-display text-4xl md:text-5xl text-foreground">
-                {t("waitlist.title")}
-              </h3> */}
-              {/* <p className="font-body text-xl text-muted-foreground">
-                {t("waitlist.subtitle")}
-              </p> */}
-            </div>
-            <Button 
-              variant="hero" 
-              size="xl" 
-              className="font-body px-16 py-6 text-xl"
-              onClick={() => setShowWaitlistModal(true)}
+    <section id={id} className="py-24 bg-warm-white">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-12 text-center">
+        <h2 className="font-display text-4xl sm:text-5xl text-cocoa-brown mb-6">
+          A Tailored Experience for Everyone
+        </h2>
+        <p className="font-body text-xl text-cocoa-brown/80 leading-relaxed mb-12">
+          Whether you're looking for the perfect hair care routine or aiming to grow your salon business, Strandly is built for you.
+        </p>
+        <Tabs defaultValue="clients" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto bg-transparent border-2 border-[#6B3F1D] rounded-lg">
+            <TabsTrigger
+              value="clients"
+              className="data-[state=active]:bg-[#6B3F1D] data-[state=active]:text-white rounded-md"
             >
-              {t("waitlist.join_waitlist")}
-            </Button>
-          </div>
-        </div>
+              For Clients
+            </TabsTrigger>
+            <TabsTrigger
+              value="stylists"
+              className="data-[state=active]:bg-[#6B3F1D] data-[state=active]:text-white rounded-md"
+            >
+              For Stylists
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="clients">
+            <div className="mt-12 text-center">
+              <h3 className="font-display text-3xl text-foreground mb-4">{t("for_clients.title")}</h3>
+              <p className="font-body text-foreground/80 mb-6 max-w-2xl mx-auto">{t("for_clients.subtitle")}</p>
+              <ul className="font-body text-foreground/80 mb-6 list-none inline-block text-left space-y-2">
+                  <li>✓ Personalized product recommendations.</li>
+                  <li>✓ Connect with expert stylists.</li>
+                  <li>✓ Track your hair's progress.</li>
+              </ul>
+              <div className="mt-6">
+                <Button variant="link" className="p-0 h-auto text-base text-cocoa-brown" onClick={() => navigate('/learn-more')}>
+                  Learn More <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="stylists">
+            <div className="mt-12 text-center">
+              <h3 className="font-display text-3xl text-foreground mb-4">{t("for_stylists.title")}</h3>
+              <p className="font-body text-foreground/80 mb-6 max-w-2xl mx-auto">{t("for_stylists.subtitle")}</p>
+              <ul className="font-body text-foreground/80 mb-6 list-none inline-block text-left space-y-2">
+                  <li>✓ Manage your client base effortlessly.</li>
+                  <li>✓ Streamline your booking process.</li>
+                  <li>✓ Showcase your work and attract new clients.</li>
+              </ul>
+              <div className="mt-6">
+                <Button variant="link" className="p-0 h-auto text-base text-cocoa-brown" onClick={() => navigate('/about-us')}>
+                  Become a Strandly Stylist <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </section>
-    </>
   );
 };
 
-export default ForClientsSection;
+export default ForClientsStylistsSection;
